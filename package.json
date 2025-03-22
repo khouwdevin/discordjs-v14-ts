@@ -1,35 +1,30 @@
 {
-    "name": "discord-bot",
-    "version": "1.0.0",
-    "description": "",
-    "main": "index.js",
-    "scripts": {
-        "start:production": "node build/index.js --env=production",
-        "start:dev": "cls && node build/index.js --env=development",
-        "dev": "start tsc -w && start nodemon build/index.js",
-        "watch": "tsc -w",
-        "build": "tsc"
-    },
-    "keywords": [],
-    "author": "khouwdevin",
-    "license": "MIT",
-    "dependencies": {
-        "@types/node": "^18.7.14",
-        "chalk": "^4.1.2",
-        "command-line-args": "^5.2.1",
-        "discord.js": "^14.10.2",
-        "dotenv": "^16.0.2",
-        "libsodium-wrappers": "^0.7.13",
-        "mongoose": "^6.5.4",
-        "moonlink.js": "^2.11.8",
-        "node-fetch": "^3.3.2"
-    },
-    "devDependencies": {
-        "@types/command-line-args": "^5.2.2",
-        "nodemon": "^3.0.1",
-        "typescript": "^4.9.5"
-    },
-    "overrides": {
-        "discord-api-types": "0.37.20"
-    }
+  "name": "discordjs-v14-ts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start:production": "node build/index.js --env=production",
+    "start:dev": "cls && node build/index.js --env=development",
+    "dev": "start tsc -w && start nodemon build/index.js",
+    "watch": "tsc -w",
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "khouwdevin",
+  "license": "MIT",
+  "dependencies": {
+    "command-line-args": "^6.0.1",
+    "discord.js": "^14.18.0",
+    "dotenv": "^16.0.2",
+    "mongoose": "^8.11.0",
+    "node-fetch": "^3.3.2",
+    "pino": "^9.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.8",
+    "nodemon": "^3.0.1",
+    "pino-pretty": "^13.0.0",
+    "typescript": "^5.2.2"
+  }
 }

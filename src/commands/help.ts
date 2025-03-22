@@ -1,70 +1,151 @@
-import { EmbedBuilder, TextChannel } from "discord.js";
-import { Command } from "../types";
-import { deleteTimedMessage } from "../functions";
+import {
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
+  EmbedBuilder,
+} from 'discord.js'
+import { Command } from '../types'
+import logger from '../logger'
 
-const command : Command = {
-    name: "help",
-    execute: async (message, args) => {
-        try {
-            const prefix = process.env.PREFIX_COMMAND
-            const botname = process.env.BOT_NAME
+const command: Command = {
+  name: 'help',
+  execute: async (message, args) => {
+    try {
+      logger.debug('[Help Command]: Run help command')
 
-            const commandslist = 
-                `
-                **${prefix}channelconfig**: If you want to change ${botname}'s channel (send the channel id).\r
-                example => **'${prefix}channelconfig 12344556677'** or **'${prefix}cfg 12344556677'**\r
-                **${prefix}checkstatus**: If you want to check ${botname}'s config.\r
-                example => **'${prefix}checkstatus'** or **'${prefix}cs'**\r
-                **${prefix}detectvoice**: If you want to disable or enable detect voice.\r
-                example => **'${prefix}detectvoice false'** or **'${prefix}dv false'**\r
-                **${prefix}greet**: ${botname} will greet you!\r
-                example => **'${prefix}greet'** or **'${prefix}g'**\r
-                **${prefix}notify**: If you want to disable or enable ${botname} online notif.\r
-                example => **'${prefix}notify false'** or **'${prefix}n false'**
-                `
+      if (!message.channel.isSendable()) {
+        logger.error(
+          '[Play Command]: Cannnot send message because channel is not sendable'
+        )
+        return
+      }
 
-            const commandsMusicList = 
-                `
-                **${prefix}play**: to play and search song.\r
-                example => **'${prefix}play drown'** or **'${prefix}p drown'**\r
-                **${prefix}pause**: to pause song.\r
-                example => **'${prefix}pause'** or **'${prefix}ps'**\r
-                **${prefix}resume**: to resume song.\r
-                example => **'${prefix}resume'** or **'${prefix}rsm'**\r
-                **${prefix}skip**: to skip song.\r
-                example => **'${prefix}skip'** or **'${prefix}s'**\r
-                **${prefix}stop**: to stop player.\r
-                example => **'${prefix}stop'** or **'${prefix}stp'**\r
-                `
+      const embed = new EmbedBuilder()
+        .setTitle(commandText[0].title)
+        .setColor('Orange')
+        .setFields(commandText[0].field)
+        .setFooter(commandText[0].footer)
 
-            const slashcommandslist = 
-                `
-                **/afk**: to announce your afk status\r
-                **/clear**: to clear messages\r
-                **/decode**: to decode your secret code\r
-                **/embed**: to create embed message\r
-                **/event**: to add discord schedule event\r
-                **/ping**: to test bot ping\r
-                **/poll**: to create poll\r
-                `
+      const currentMessage = await message.channel.send({ embeds: [embed] })
 
-            const embed = new EmbedBuilder()
-                .setTitle("Here's the instruction")
-                .setColor("White")
-                .addFields(
-                    { name: "Slash Commands List", value: slashcommandslist},
-                    { name: "Commands List", value: commandslist},   
-                    { name: "Music Commands List", value: commandsMusicList},   
-                )
-            message.channel.send({ embeds: [embed] }).then(m => {
-                deleteTimedMessage(m, message.channel as TextChannel, 20000)
-                deleteTimedMessage(message, message.channel as TextChannel, 20000)
-            })
-        } catch(e) {console.log(e)}
-    },
-    cooldown: 2,
-    aliases: ["h"],
-    permissions: []
+      const backButton = new ButtonBuilder()
+        .setLabel('⬅️')
+        .setStyle(ButtonStyle.Primary)
+        .setCustomId(`help.${currentMessage.id}.back`)
+
+      const nextButton = new ButtonBuilder()
+        .setLabel('➡️')
+        .setStyle(ButtonStyle.Primary)
+        .setCustomId(`help.${currentMessage.id}.next`)
+
+      const buttonsRow = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        backButton,
+        nextButton
+      )
+
+      await currentMessage.edit({ embeds: [embed], components: [buttonsRow] })
+
+      const timeout = setTimeout(async () => {
+        await currentMessage
+          .delete()
+          .catch((e) =>
+            logger.error(
+              `[Help Command]: ❌ Failed to delete message : ${e.message}`
+            )
+          )
+      }, 20000)
+
+      const client = message.client
+      client.timeouts.set(`help-${currentMessage.id}`, timeout)
+      logger.trace(`[Help Command]: Current timeout help-${currentMessage.id}`)
+    } catch (e) {
+      logger.error(`[Help Command]: ❌ Failed to show help : ${e.message}`)
+    }
+  },
+  button: async (interaction) => {
+    try {
+      if (!interaction.channel) return
+
+      const [type, messageId, command] = interaction.customId.split('.')
+      const client = interaction.client
+      const currentMessage = await interaction.channel.messages
+        .fetch(messageId)
+        .catch((e) =>
+          logger.error(
+            `[Help Command Button]: ❌ Failed to fetch message : ${e.message}`
+          )
+        )
+
+      if (!currentMessage) return
+      if (!currentMessage.embeds[0].footer) return
+
+      const components = currentMessage.components[0]
+      const currentPage =
+        parseInt(currentMessage.embeds[0].footer.text.split('/')[0]) - 1
+      const index = command === 'next' ? 1 : -1
+      const nextPage = Math.max(0, Math.min(currentPage + index, 3))
+
+      const embed = new EmbedBuilder()
+        .setTitle(commandText[nextPage].title)
+        .setColor('Orange')
+        .setFields(commandText[nextPage].field)
+        .setFooter(commandText[nextPage].footer)
+
+      currentMessage.edit({ embeds: [embed], components: [components] })
+
+      clearTimeout(client.timeouts.get(`help-${messageId}`))
+      client.timeouts.delete(`help-${messageId}`)
+
+      const timeout = setTimeout(async () => {
+        await currentMessage
+          .delete()
+          .catch((e) =>
+            logger.error(
+              `[Help Command Button]: ❌ Failed to delete message : ${e.message}`
+            )
+          )
+      }, 20000)
+
+      client.timeouts.set(`help-${currentMessage.id}`, timeout)
+
+      interaction.deferUpdate()
+    } catch (e) {
+      logger.error(
+        `[Help Command Button]: ❌ Failed to process interact button help : ${e.message}`
+      )
+    }
+  },
+  cooldown: 2,
+  aliases: ['h'],
+  permissions: [],
 }
+
+const commandText = [
+  {
+    title: 'Command List',
+    field: [
+      {
+        name: `${process.env.PREFIX_COMMAND}greet`,
+        value: `
+                    Stalker will greet you!\r
+                    example => **${process.env.PREFIX_COMMAND}greet** or **${process.env.PREFIX_COMMAND}g**\r
+                    `,
+      },
+    ],
+    footer: { text: '1/2' },
+  },
+  {
+    title: 'Slash Command List',
+    field: [
+      {
+        name: ' ',
+        value: `
+                    **/ping**: to test bot ping\r
+                    `,
+      },
+    ],
+    footer: { text: '2/2' },
+  },
+]
 
 export default command
