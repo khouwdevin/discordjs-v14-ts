@@ -51,6 +51,11 @@ npm run start:dev
 npm run dev
 ```
 
+### Info
+
+- To be able change logger level, send DM to bot with [PREFIX]logger trace | info | debug
+  ex => ($logger trace)
+
 ### Acknowledgement
 
 - This repo is forked from [Discord.js v14 Bot Template](https://github.com/MericcaN41/discordjs-v14-template-ts)
